@@ -208,6 +208,22 @@ class AniSearch(BaseCog):
             embeds = []
 
             for anime_manga in data:
+                # Query Twist.moe's JSON feed
+                async with aiohttp.ClientSession() as session:
+                    async with session.get("https://twist.moe/feed/anime?format=json", headers={'User-Agent': "nani"}) as response:
+                        datafeed = await response.json()
+
+                # Loop through datafeed to check against mal IDs
+                for twistitem in datafeed['items']:
+                    if twistitem['mal:id'] == anime_manga['idMal']:
+                        twistlink = twistitem['link']
+                        kitsuslug = twistitem['kitsu:id']
+                        onkitsu = f", [Kitsu](https://kitsu.io/anime/{kitsuslug})"
+                        ontwist = f", [AnimeTwist]({twistlink})"
+                        break
+                    else:
+                        ontwist = ""
+                        onkitsu = ""
                 # Sets up various variables for Embed
                 link = f"https://anilist.co/{cmd.lower()}/{anime_manga['id']}"
                 description = anime_manga["description"]
@@ -238,10 +254,10 @@ class AniSearch(BaseCog):
                     embed.add_field(name="Chapters", value=anime_manga.get("chapters", "N/A"))
                     embed.set_footer(text="Status : " + MediaStatusToString.get(anime_manga.get("status"), "N/A") + ", Powered by Anilist")
                 if external_links:
-                    embed.add_field(name="Streaming and/or Info sites", value=external_links)
+                    embed.add_field(name="Streaming and/or Info sites", value=f"{external_links}{ontwist}")
                 if anime_manga["bannerImage"]:
                     embed.set_image(url=anime_manga["bannerImage"])
-                embed.add_field(name="You can find out more", value=f"[Anilist]({link}), [MAL](https://myanimelist.net/{cmd.lower()}/{anime_manga['idMal']}), Kitsu (Soon™)")
+                embed.add_field(name="You can find out more", value=f"[Anilist]({link}), [MAL](https://myanimelist.net/{cmd.lower()}/{anime_manga['idMal']}){onkitsu}", inline=False)
                 embeds.append(embed)
 
             return embeds, data
